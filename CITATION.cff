@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it using the metadata below."
+title: "AutoTAB: Automatic Tracking Algorithm for Bipolar Magnetic Regions"
+authors:
+  - family-names: Sreedevi
+    given-names: Anu B.
+    # ORCID not found
+  - family-names: Jha
+    given-names: Bibhuti Kumar
+  - family-names: Karak
+    given-names: Bidya Binay
+  - family-names: Banerjee
+    given-names: Dipankar
+abstract: >
+  We introduce AutoTAB, an automated algorithm to track bipolar
+  magnetic regions (BMRs) over their lifetime on the solar disk using
+  MDI and HMI magnetograms (1996–2020). AutoTAB successfully tracked
+  9,152 BMRs, enabling detailed study of their evolution, morphologies,
+  tilt angles, magnetic fluxes, lifetimes, and statistical properties.
+  The method advances understanding of solar magnetic activity cycles.
+keywords:
+  - Bipolar Magnetic Regions
+  - solar magnetism
+  - automatic tracking
+  - surface flux transport
+license: "CC-BY-4.0"
+doi: 10.3847/1538-4365/acec47
+date-released: 2023-12-*
+url: "https://iopscience.iop.org/article/10.3847/1538-4365/acec47"
+type: article
