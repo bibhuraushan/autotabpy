@@ -1,16 +1,19 @@
 cff-version: 1.2.0
-title: "Memory bus simulation scripts"
-version: 1.8.0
+title: "AutoTAB: Automatic Tracking Algorithm for Bipolar Magnetic Regions"
+version: 1.0.09
 license: "MIT"
 type: software
-abstract: "These are the scripts used to simulate a memory bus"
+abstract: "Automatic Tracking Algorithm for Bipolar Magnetic Regions"
 message: "If you use this software, please cite it as below."
 authors:
-  - given-names: Josiah
-    family-names: Carberry
-    affiliation: Brown University
-    orcid: "https://orcid.org/0000-0002-1825-0097"
-keywords:
-  - computer science
-  - psychoceramics
-  - journaling filesystems
+  - family-names: Jha
+    given-names: Bibhuti Kumar
+    orcid: "https://orcid.org/0000-0002-6374-4616"
+  - family-names: Sreedevi
+    given-names: Anu B.
+  - family-names: Karak
+    given-names: Bidya Binay
+    orcid: "https://orcid.org/0000-0001-6984-4001"
+  - family-names: Banerjee
+    given-names: Dipankar
+
