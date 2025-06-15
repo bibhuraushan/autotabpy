@@ -1,0 +1,322 @@
+import copy
+import time
+import multiprocessing as mlp
+from autotab.filehandle import SetPath
+from autotab.datatype import datatype
+from autotab.aftmap import AFTmap
+from multiprocessing.pool import ThreadPool as Pool
+import os
+import json
+from autotab.datatype import NpEncoder
+
+try:
+    import scipy.ndimage as scnd
+    import numpy as np
+    import pandas as pd
+    import sunpy
+    import sunpy.sun as snp
+    import tqdm as tq
+    import h5py as h5
+    from skimage.filters import gaussian, sobel
+    from skimage.morphology import area_opening, binary_closing, disk, binary_dilation, binary_erosion
+    from skimage.feature import peak_local_max
+    from skimage.measure import label, regionprops
+    from scipy import ndimage as nd
+    from astropy.stats import circmean
+    from astropy import units as u
+except ImportError as error:
+    raise ImportError("Unable to import packages.")
+
+
+# class for aft map
+class ARaft:
+    """
+    Class for detecting AR from AFT Maps (h5).
+
+    Attributes:
+    - Rsun (float): Solar radius in meters.
+    - mhem (float): Millionth of Hemisphere: Standard Unit of sunspot area.
+    - nx, ny (int): Number of grid points in longitude and latitude.
+    - dlat, dlon (float): Latitude and longitude grid step in degrees.
+    - lat, lon (numpy.ndarray): Meshgrid of latitude and longitude values.
+    - image (numpy.ndarray): Input image data.
+    - th (float): Threshold for the mask.
+
+    Methods:
+    - areamap(mhs=False): Calculate the area map.
+    - fluxmap: Calculate the flux map.
+    - get_armask(scale=1.0, rsmooth=5): Get the active region mask.
+    - get_arprop: Calculate properties of active regions.
+
+    Args:
+    - image (str or numpy.ndarray): Path to an image file or image data.
+    """
+    Rsun = snp.physical_constants["radius"].value * 100.0
+    mhem = (1.0e6 / (2.0 * np.pi * Rsun * Rsun))
+    nx, ny = 1024, 512
+    dlat, dlon = 180.0 / ny, 360.0 / nx
+    lat = (np.arange(512) + 0.5) * dlat - 90.0
+    lon = (np.arange(1024) + 0.5) * dlon
+    lon, lat = np.meshgrid(lon, lat)
+
+    def __init__(self, image, rsmooth=5):
+        """
+        Initialize the ARaft object.
+
+        Args:
+        - image (str or numpy.ndarray): Path to an image file or image data.
+        """
+        if os.path.isfile(image):
+            self.filename = image
+            self.image = AFTmap(image).aftmap
+            self.Time = AFTmap(image).metadata["map_date"]
+        else:
+            self.image = image
+            self.Time = None
+        self.rsmooth = rsmooth
+        self.th = 0
+
+    def areamap(self, mhs=False):
+        """
+        Calculate the area map for the image.
+
+        Parameters:
+        - mhs (bool): Flag indicating whether to normalize using mhem factor.
+
+        Returns:
+        - area_map (numpy.ndarray): Calculated area map.
+        """
+        area = ((2.0 * np.pi * self.Rsun / 1024.0) ** 2) * np.cos(np.deg2rad(self.lat))
+        if mhs:
+            return area * self.mhem
+        return area
+
+    @property
+    def fluxmap(self):
+        """
+        Calculate the flux map for the image.
+
+        Returns:
+        - flux_map (numpy.ndarray): Calculated flux map.
+        """
+        return self.image * self.areamap() / 1.0e20
+
+    @property
+    def mask(self):
+        """
+        Generate an active region mask for the image.
+
+        Parameters:
+        - scale (float): Scaling factor for the threshold.
+        - rsmooth (int): Radius for Gaussian smoothing.
+
+        Returns:
+        - mask (numpy.ndarray): Generated active region mask.
+        """
+        _im = copy.deepcopy(self.image)
+        self.th = 150.0
+
+        _areamap = self.areamap(mhs=True)
+        # ===============================================
+        for th in range(20):
+            mask = np.where(np.abs(self.image) > self.th, 1, 0)
+            if mask.max() == 0:
+                return np.zeros_like(self.image)
+            maskc = binary_closing(mask, disk(4))
+            maskc = area_opening(maskc, 5)
+            maskc = nd.binary_fill_holes(maskc)
+            maskc = area_opening(maskc, 20)
+            maskc = binary_closing(maskc, disk(4))
+            mask2 = binary_dilation(maskc, disk(3))
+            if mask2.max() == 0:
+                return np.zeros_like(self.image)
+
+            labels = label(mask2, connectivity=2)
+            with open("log.log", "a") as fl:
+                fl.write(f"{th} Threshold: No AR  in {self.Time} is {labels.max()}\n")
+
+            for ll in np.unique(labels)[1:]:
+                ind = np.where(labels == ll)
+                if _areamap[ind].sum() > 20000:
+                    self.th += 0.1 * self.th
+                    break
+            else:
+                break
+        else:
+            print("Unable to find appropriate threshold")
+            with open("log.log", "a") as fl:
+                fl.write(f"Threshold: Unable to find appropriate threshold {self.Time}\n")
+            return np.zeros_like(self.image)
+
+        # get raw properties
+        _propraw = {self.Time: self.get_labelprop(labels)}
+
+        with open("raw.json", "a") as fl:
+            json.dump(_propraw, fl, cls=NpEncoder, indent=4)
+
+        # shift mask
+        indx = np.where(mask2 > 0)
+        xmin, xmax = indx[1].min(), indx[1].max()
+        shift = 0
+        if (xmin == 0) and (xmax == 1023):
+            for sht in np.arange(5, 1024, 5):
+                _mask = np.roll(mask2, sht, axis=1)
+                ind = np.where(_mask == 1)
+                xmin, xmax = ind[1].min(), ind[1].max()
+                if (xmin > 5) and (xmax < 1018):
+                    labels = label(_mask, connectivity=2)
+                    labels = np.roll(labels, -sht, axis=1)
+                    shift = sht
+                    break
+            else:
+                print("Unable to find the correct shift.")
+
+        # remove monopole by flux balnce condition
+        _fluxmap = self.fluxmap * np.where(np.abs(self.image) > 10, 1, 0)
+        mask = np.zeros_like(mask2, dtype=int)
+        for ii in np.unique(labels)[1:]:
+            ind = np.where(labels == ii)
+            _totlaflux = np.abs(_fluxmap[ind]).sum()
+            ratio = np.abs(_fluxmap[ind].sum()) / _totlaflux
+            if (ratio < 0.7) and (_totlaflux >= 0.5):
+                mask[ind] = 1
+            elif (ratio < 0.8) and (_totlaflux >= 10.0):
+                mask[ind] = 1
+            else:
+                with open("log.log", "a") as fl:
+                    fl.write(f"Flux balnce: Not satisfied at {self.Time} for {ii}, R:{ratio}, Flux:{_totlaflux}\n")
+
+        # generate map by taking care of shift
+        if shift != 0:
+            mask = label(np.roll(mask, shift, axis=1), connectivity=2)
+            mask = np.roll(mask, -shift, axis=1)
+        else:
+            mask = label(mask, connectivity=2)
+        return mask
+
+    @property
+    def prop(self):
+        """
+        Calculate properties of active regions based on the generated mask.
+
+        Returns:
+        - props (dict): Dictionary containing active region properties.
+        """
+        props = self.get_labelprop(self.mask)
+        ID = {}
+        for ii in props.keys():
+            _lat = props[ii]["lat"]
+            _lon = props[ii]["clon"]
+            ns = lambda _lat: f"N" if _lat > 0 else f"S"
+            _ID = f"{ns(_lat)}{int(abs(_lat)):0>2}{round(_lon):0>3}"
+            if not (self.Time is None):
+                _ID = self.Time.replace("-", "")[:11] + _ID
+            ID[ii] = _ID
+        for ii in ID.keys(): props[ID[ii]] = props.pop(ii)
+        return props
+
+    def get_labelprop(self, labeled):
+        _areamap = self.areamap(mhs=True)
+        props = {}
+        for ii in np.unique(labeled)[1:]:
+            prop = {}
+            ind = np.where(labeled == ii)
+            _lat = np.average(self.lat[ind], weights=np.abs(self.image[ind])).round(3)
+            prop["lat"] = _lat
+            _lon = circmean(self.lon[ind] * u.deg, weights=np.abs(self.image[ind]) * u.m).round(3)
+            _lon = _lon.value % 360.0
+            prop["clon"] = _lon
+            _totalflux = np.abs(self.fluxmap[ind]).sum().round(3)
+            prop["flux"] = _totalflux * 1.0e20
+            _area = np.sum(_areamap[ind]).round(3)
+            prop["area"] = _area
+            _ratio = np.abs(self.fluxmap[ind].sum()) / _totalflux
+            prop["ratio"] = _ratio
+            props[str(ii)] = prop
+        return props
+
+
+class ARmagobs:
+    pass
+
+
+def _getaraft(file):
+    _ardata = ARaft(file)
+    _name = AFTmap(file).metadata["map_date"]
+    return {"filename": _name, "prop": _ardata.prop}
+
+
+def _getaraftmask(file):
+    _ardata = ARaft(file)
+    _name = AFTmap(file).metadata["map_date"]
+    return {"filename": _name, "mask": _ardata.mask, "prop": _ardata.prop}
+
+
+class ARdata:
+    types = ("aftmap", "magobs")
+    Rsun = snp.physical_constants["radius"].value * 100.0
+    mhem = (1.0e6 / (2.0 * np.pi * Rsun * Rsun))
+
+    def __init__(self):
+        self.isfile = True
+        self.isdir = False
+        self.types = "aftmap"
+        self.files = None
+        self.nfiles = 1
+        self.nthreads = 1
+
+    def load_data(self, filepath, data_type="magobs", frame="carrington", nthreads=None, silent=False):
+        if not (data_type in self.types):
+            raise NameError("Type Does not match: Availabe Types are ", self.types)
+        self.isfile = os.path.isfile(filepath)
+        self.isdir = os.path.isdir(filepath)
+        if nthreads is None:
+            self.nthreads = int(0.8 * mlp.cpu_count())
+
+        if self.isfile:
+            self.files = filepath
+        elif self.isdir:
+            fileob = SetPath(filepath)
+            self.files = fileob.search(wcard="*.h5")
+            self.nfiles = fileob.counts
+            if self.nfiles == 0:
+                raise FileNotFoundError("No AFTmap with h5 extesion found.")
+            if not silent:
+                print("%20s %-10s" % ("Type of files :", self.types))
+                print("%20s %-10s" % ("File Format :", "H5"))
+                print("%20s %-10s" % ("Number of files :", self.nfiles))
+                print("%20s %-10s" % ("Number of threads :", nthreads))
+
+    def get_arinfo(self, rsmooth=5):
+        # if the provide filepath is file
+        if self.isfile:
+            if self.types == "aftmap":
+                return ARaft(self.files, rsmooth=rsmooth)
+            elif self.types == "magobs":
+                return ARmagobs()
+        if self.isdir:
+            if self.types == "aftmap":
+                _data = {}
+                with Pool(self.nthreads) as p:
+                    with tq.tqdm(total=self.nfiles) as pbar:
+                        for pp in p.imap(_getaraft, self.files):
+                            _data[pp["filename"]] = pp["prop"]
+                            pbar.update()
+                return datatype(_data)
+
+    def get_ARs(self):
+        for file in self.files:
+            yield ARaft(file)
+
+    def get_masks(self):
+        for file in self.files:
+            yield ARaft(file).mask
+
+    def save_masks(self, outpath="./data"):
+        if os.path.exists(outpath):
+            os.mkdir(outpath)
+            pass
+
+
+if __name__ == "__main__":
+    print("Ohhh No! I am not supposed to run like this. Please import me :=)")
