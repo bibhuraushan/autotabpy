@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: "AutoTAB: Automatic Tracking Algorithm for Bipolar Magnetic Regions"
+title: "autotabpy"
 version: 1.0.09
 license: "MIT"
 type: software
@@ -8,6 +8,7 @@ message: "If you use this software, please cite it as below."
 authors:
   - family-names: Jha
     given-names: Bibhuti Kumar
+    affiliation: Southwest Research Institute
     orcid: "https://orcid.org/0000-0002-6374-4616"
   - family-names: Sreedevi
     given-names: Anu B.
@@ -16,4 +17,5 @@ authors:
     orcid: "https://orcid.org/0000-0001-6984-4001"
   - family-names: Banerjee
     given-names: Dipankar
-
+keywords:
+  - Bipolar Magnetic Regions
