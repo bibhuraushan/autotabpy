@@ -1,0 +1,39 @@
+{
+  "title": "AutoTAB: Automatic Tracking Algorithm for Bipolar Magnetic Regions",
+  "version": "v1.0.07",
+  "upload_type": "software",
+  "description": "AutoTAB is an automated tracking algorithm for detecting and analyzing bipolar magnetic regions (BMRs) from full-disk solar magnetograms. It enables statistical studies of magnetic flux emergence, tilt angles, and evolution across solar cycles.",
+  "creators": [
+    {
+      "name": "Sreedevi, Anu B."
+    },
+    {
+      "name": "Jha, Bibhuti Kumar",
+      "orcid": "0000-0002-6374-4616"
+    },
+    {
+      "name": "Karak, Bidya Binay",
+      "orcid": "0000-0001-6984-4001"
+    },
+    {
+      "name": "Banerjee, Dipankar",
+      "orcid": "0000-0003-4340-287X"
+    }
+  ],
+  "license": "MIT",
+  "publication_date": "2025-06-15",
+  "keywords": [
+    "solar magnetism",
+    "active regions",
+    "magnetic flux",
+    "sunspot tracking"
+  ],
+  "access_right": "open",
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "10.3847/1538-4365/acec47",
+      "scheme": "doi"
+    }
+  ]
+}
