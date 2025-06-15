@@ -13,6 +13,15 @@ authors:
   - family-names: Banerjee
     given-names: Dipankar
     orcid: "https://orcid.org/0000-0003-4340-287X"
+abstract: >
+  AutoTAB is an automated algorithm for tracking bipolar magnetic regions (BMRs) on the Sun
+  using MDI and HMI data spanning 1996 to 2020. It enables large-scale studies of BMR evolution,
+  tilt, magnetic flux, and their role in solar magnetic activity.
+keywords:
+  - solar magnetism
+  - active regions
+  - magnetic flux
+  - sunspot tracking
 doi: "10.3847/1538-4365/acec47"
 date-released: 2023-12-20
 url: "https://iopscience.iop.org/article/10.3847/1538-4365/acec47"
