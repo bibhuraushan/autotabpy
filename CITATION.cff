@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 title: "autotabpy"
-version: 1.0.09
+version: 1.0.13
 license: "MIT"
 type: software
 abstract: "Automatic Tracking Algorithm for Bipolar Magnetic Regions"
