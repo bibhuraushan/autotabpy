@@ -13,18 +13,8 @@ authors:
   - family-names: Banerjee
     given-names: Dipankar
     orcid: "https://orcid.org/0000-0003-4340-287X"
-abstract: >
-  We introduce AutoTAB, an automated algorithm to track bipolar magnetic regions (BMRs)
-  over their lifetime on the solar disk using MDI and HMI magnetograms from 1996 to 2020.
-  AutoTAB successfully tracked 9,152 BMRs, enabling a detailed study of their evolution,
-  tilt angles, flux, and statistical properties. This tool provides new insights into
-  solar magnetic field evolution and activity cycles.
-keywords:
-  - solar magnetism
-  - bipolar magnetic regions
-  - automatic tracking
-  - surface flux transport
-doi: 10.3847/1538-4365/acec47
-date-released: 2023-12-20
-url: "https://iopscience.iop.org/article/10.3847/1538-4365/acec47"
-type: article
+title: "autotabpy"
+version: 1.0.3
+doi: 10.5281/zenodo.1234
+date-released: 2025-06-14
+url: "https://github.com/bibhuraushan/autotabpy"
