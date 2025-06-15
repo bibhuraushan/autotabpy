@@ -1,6 +1,8 @@
-cff-version: 1.1.0
-message: "If you use this software, please cite it as below."
+cff-version: 1.2.0
 title: "AutoTAB: Automatic Tracking Algorithm for Bipolar Magnetic Regions"
+license: "MIT"
+type: software
+message: "If you use this software, please cite it as below."
 authors:
   - family-names: Sreedevi
     given-names: Anu B.
@@ -13,10 +15,5 @@ authors:
   - family-names: Banerjee
     given-names: Dipankar
     orcid: "https://orcid.org/0000-0003-4340-287X"
-version: v1.0.05
+version: v1.0.06
 date-released: 2025-06-15
-abstract: >
-  AutoTAB is an automated tracking algorithm for detecting and analyzing
-  bipolar magnetic regions (BMRs) from full-disk solar magnetograms.
-  It enables statistical studies of magnetic flux emergence, tilt angles,
-  and evolution across solar cycles.
